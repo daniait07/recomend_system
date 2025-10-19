@@ -64,4 +64,4 @@ class GoogleGeminiNER(NERProvider):
                 if "text" in entity and "label" in entity
             ]
 
-        return [Entity(text=entinty.text, label=entinty.label) for entinty in parsed.entities]
+        return [Entity(text=entity.text, label=entity.label) for entity in parsed.entities]
