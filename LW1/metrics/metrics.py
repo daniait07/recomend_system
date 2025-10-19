@@ -1,6 +1,6 @@
 import json
 from typing import Set, Tuple, List
-from providers.models import Entity
+from additional.models import Entity
 
 
 def parse_ground_truth(raw: str) -> List[Entity]:
