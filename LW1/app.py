@@ -2,8 +2,8 @@ import json
 import streamlit as st
 
 from settings import settings
-from providers.google_gemini_ner import GoogleGeminiNER
-from providers.nlpcloud_ner import NLP_CLOUD_NER
+from additional.google_gemini_ner import GoogleGeminiNER
+from additional.nlpcloud_ner import NLP_CLOUD_NER
 from utils.metrics import (
     parse_ground_truth,
     normalize_entity,
