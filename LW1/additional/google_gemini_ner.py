@@ -1,7 +1,7 @@
 from typing import List
 from pydantic import BaseModel, Field
 from google import genai
-from providers.models import Entity, NERProvider
+from additional.models import Entity, NERProvider
 import json
 
 
