@@ -8,6 +8,11 @@ class Entity:
     text: str
     label: str
 
+class EmotionLabels:
+    TARGET = "TARGET"
+    POSITIVE_FEATURE = "POSITIVE_FEATURE"
+    NEGATIVE_FEATURE = "NEGATIVE_FEATURE"
+    USER_EXPERIENCE = "USER_EXPERIENCE"
 
 class NERProvider(ABC):
     @abstractmethod
