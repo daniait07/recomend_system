@@ -1,7 +1,7 @@
 from typing import List, Dict, Any
 import requests
 
-from providers.models import Entity, NERProvider
+from additional.models import Entity, NERProvider
 
 
 class NLPCloudEntitiesError(RuntimeError):
