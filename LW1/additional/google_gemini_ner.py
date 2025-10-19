@@ -1,6 +1,6 @@
 from typing import List
 from pydantic import BaseModel, Field
-from google import genai
+import google.generativeai as genai
 from additional.models import Entity, NERProvider
 import json
 
@@ -36,7 +36,8 @@ class GoogleGeminiNER(NERProvider):
     def __init__(
         self, api_key: str, model: str = "gemini-2.5-flash"
     ):
-        self._client = genai.Client(api_key=api_key)
+        genai.configure(api_key=api_key)
+        response = genai.GenerativeModel(model).generate_content(promt)
         self._model = model
 
     def get_name(self) -> str:
