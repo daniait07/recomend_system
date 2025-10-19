@@ -2,46 +2,44 @@ import json
 from typing import Set, Tuple, List
 from additional.models import Entity
 
-
 def parse_ground_truth(raw: str) -> List[Entity]:
     """
-    Поддерживает формат: {"entities":[{"text":"...","label":"PERSON"}, ...]}
+    Поддерживает формат: {"entities":[{"text":"...","label":"POSITIVE_FEATURE"}, ...]}
     """
-    raw_strip = raw.strip()
-
-    data = json.loads(raw_strip)
+    data = json.loads(raw.strip())
     ents = []
-    if (
-        isinstance(data, dict)
-        and "entities" in data
-        and isinstance(data["entities"], list)
-    ):
+    if isinstance(data, dict) and "entities" in data and isinstance(data["entities"], list):
         for entity in data["entities"]:
             if isinstance(entity, dict) and "text" in entity and "label" in entity:
-                ents.append(
-                    Entity(text=str(entity["text"]), label=str(entity["label"]))
-                )
-        return ents
-
+                ents.append(Entity(text=str(entity["text"]), label=str(entity["label"]).upper()))
     return ents
 
-def normalize_entity(entity: Entity) -> Tuple[str, str]:
-    return (entity.text.strip().lower(), entity.label.strip().upper())
 
-def evaluate_sets(gt: Set[Tuple[str, str]], pred: Set[Tuple[str, str]]):
-    matched = gt & pred
-    missed = gt - pred
-    spurious = pred - gt
+def calculate_emotion_metrics(entities: List[Entity]) -> Dict[str, float]:
+    """
+    Рассчитывает эмоциональные метрики:
+    - positive_count
+    - negative_count
+    - balance (от -1 до +1)
+    - dominant_sentiment
+    """
 
-    tp = len(matched)
-    fp = len(spurious)
-    fn = len(missed)
+    positive_labels = {"POSITIVE_FEATURE", "POSITIVE", "GOOD", "HAPPY"}
+    negative_labels = {"NEGATIVE_FEATURE", "NEGATIVE", "BAD", "SAD"}
 
-    precision = tp / (tp + fp) if (tp + fp) else 0.0
-    recall = tp / (tp + fn) if (tp + fn) else 0.0
-    f1 = (
-        (2 * precision * recall) / (precision + recall) if (precision + recall) else 0.0
-    )
+    pos = sum(1 for e in entities if e.label in positive_labels)
+    neg = sum(1 for e in entities if e.label in negative_labels)
 
-    scores = {"precision": precision, "recall": recall, "f1": f1}
-    return scores, matched, missed, spurious
+    total = pos + neg
+    if total == 0:
+        balance = 0.0
+        dominant = "neutral"
+    else:
+        balance = round((pos - neg) / total, 3)
+        dominant = "positive" if balance > 0 else "negative" if balance < 0 else "neutral"
+
+    return {
+        "positive_count": pos,
+        "negative_count": neg,
+        "balance": balance,
+        "dominant_sentiment": dominant,}
