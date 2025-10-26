@@ -5,4 +5,9 @@ pydantic-settings>=2.0.0
 requests>=2.31.0
 python-dotenv>=1.0.0
 typing-extensions>=4.0.0
- 
+huggingface_hub>=0.25.0
+transformers>=4.44.0
+torch>=2.4.0
+tqdm>=4.66.0
+pytest>=8.0.0
+pandas>=2.2.0
