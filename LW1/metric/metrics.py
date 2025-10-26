@@ -1,45 +1,65 @@
+from __future__ import annotations
 import json
-from typing import Set, Tuple, List
-from additional.models import Entity
+import os
+import time
+import logging
+from typing import Any
+from datetime import datetime
+from additional.settings import settings
 
-def parse_ground_truth(raw: str) -> List[Entity]:
-    """
-    Поддерживает формат: {"entities":[{"text":"...","label":"POSITIVE_FEATURE"}, ...]}
-    """
-    data = json.loads(raw.strip())
-    ents = []
-    if isinstance(data, dict) and "entities" in data and isinstance(data["entities"], list):
-        for entity in data["entities"]:
-            if isinstance(entity, dict) and "text" in entity and "label" in entity:
-                ents.append(Entity(text=str(entity["text"]), label=str(entity["label"]).upper()))
-    return ents
+logger = logging.getLogger("metrics")
 
 
-def calculate_emotion_metrics(entities: List[Entity]) -> Dict[str, float]:
+class MetricsLogger:
     """
-    Рассчитывает эмоциональные метрики:
-    - positive_count
-    - negative_count
-    - balance (от -1 до +1)
-    - dominant_sentiment
+    Простой JSONL логгер метрик, сохраняет каждую запись в отдельную строку.
+    Удобен для анализа в pandas, Excel, BigQuery и т.д.
     """
 
-    positive_labels = {"POSITIVE_FEATURE", "POSITIVE", "GOOD", "HAPPY"}
-    negative_labels = {"NEGATIVE_FEATURE", "NEGATIVE", "BAD", "SAD"}
+    def __init__(self, filepath: str | None = None):
+        self._filepath = filepath or settings.metrics.file_path
+        os.makedirs(os.path.dirname(self._filepath), exist_ok=True)
 
-    pos = sum(1 for e in entities if e.label in positive_labels)
-    neg = sum(1 for e in entities if e.label in negative_labels)
+    def log(
+        self,
+        model_name: str,
+        input_text: str,
+        output_entities: list[dict[str, Any]],
+        latency_sec: float,
+        success: bool = True,
+        error: str | None = None,
+    ) -> None:
+        record = {
+            "timestamp": datetime.utcnow().isoformat(),
+            "model": model_name,
+            "input_length": len(input_text),
+            "entities_count": len(output_entities),
+            "latency_sec": round(latency_sec, 3),
+            "success": success,
+            "error": error,
+            "input_preview": input_text[:100],
+            "entities": output_entities,
+        }
 
-    total = pos + neg
-    if total == 0:
-        balance = 0.0
-        dominant = "neutral"
-    else:
-        balance = round((pos - neg) / total, 3)
-        dominant = "positive" if balance > 0 else "negative" if balance < 0 else "neutral"
+        try:
+            with open(self._filepath, "a", encoding="utf-8") as f:
+                f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        except Exception as exc:
+            logger.exception("Failed to write metrics: %s", exc)
 
-    return {
-        "positive_count": pos,
-        "negative_count": neg,
-        "balance": balance,
-        "dominant_sentiment": dominant,}
+    def measure_and_log(self, provider, text: str) -> list:
+        """
+        Измеряет время выполнения extract(), сохраняет метрики, возвращает результат.
+        """
+        start = time.perf_counter()
+        try:
+            result = provider.extract(text)
+            latency = time.perf_counter() - start
+            entities_dicts = [e.__dict__ for e in result]
+            self.log(provider.get_name(), text, entities_dicts, latency, success=True)
+            return result
+        except Exception as exc:
+            latency = time.perf_counter() - start
+            self.log(provider.get_name(), text, [], latency, success=False, error=str(exc))
+            raise
+
